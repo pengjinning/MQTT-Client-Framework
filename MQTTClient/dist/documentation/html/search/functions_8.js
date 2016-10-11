@@ -1,9 +1,9 @@
 var searchData=
 [
-  ['sending_3atype_3aqos_3aretained_3aduped_3amid_3adata_3a',['sending:type:qos:retained:duped:mid:data:',['../protocol_m_q_t_t_session_delegate-p.html#a8c16339f900bfe2aa98a2aabdca44484',1,'MQTTSessionDelegate-p']]],
-  ['subackreceived_3amsgid_3agrantedqoss_3a',['subAckReceived:msgID:grantedQoss:',['../protocol_m_q_t_t_session_delegate-p.html#aa7ed5b2382112dd077a4863407bacacc',1,'MQTTSessionDelegate-p']]],
-  ['subscribeandwaittotopic_3aatlevel_3a',['subscribeAndWaitToTopic:atLevel:',['../interface_m_q_t_t_session.html#a2ca74869642b16ebf62a4b707cdb17d6',1,'MQTTSession']]],
-  ['subscribeandwaittotopics_3a',['subscribeAndWaitToTopics:',['../interface_m_q_t_t_session.html#a42bce4703b36a0a18bd92a4b6a860767',1,'MQTTSession']]],
-  ['subscribetotopic_3aatlevel_3a',['subscribeToTopic:atLevel:',['../interface_m_q_t_t_session.html#ace91fa3ca0b5eb08a2a48706c840dab3',1,'MQTTSession']]],
-  ['subscribetotopics_3a',['subscribeToTopics:',['../interface_m_q_t_t_session.html#aba1debfec65602b53c6e4b9c3bdf4af1',1,'MQTTSession']]]
+  ['messagedelivered_3a',['messageDelivered:',['../protocol_m_q_t_t_session_manager_delegate_01-p.html#ac5c24515442786b7f4ee2b29a103fac4',1,'MQTTSessionManagerDelegate -p']]],
+  ['messagedelivered_3amsgid_3a',['messageDelivered:msgID:',['../protocol_m_q_t_t_session_delegate_01-p.html#ab96022535f3a7dce2234515ccf4259e3',1,'MQTTSessionDelegate -p']]],
+  ['mqtttransport_3adidfailwitherror_3a',['mqttTransport:didFailWithError:',['../protocol_m_q_t_t_transport_delegate_01-p.html#a8a3b230eddcaa652f4e132c7a970d0f1',1,'MQTTTransportDelegate -p']]],
+  ['mqtttransport_3adidreceivemessage_3a',['mqttTransport:didReceiveMessage:',['../protocol_m_q_t_t_transport_delegate_01-p.html#a19668acdd5d230dd7080a22560ce06a1',1,'MQTTTransportDelegate -p']]],
+  ['mqtttransportdidclose_3a',['mqttTransportDidClose:',['../protocol_m_q_t_t_transport_delegate_01-p.html#afa32c4b8636994afa1ad02c6453971ff',1,'MQTTTransportDelegate -p']]],
+  ['mqtttransportdidopen_3a',['mqttTransportDidOpen:',['../protocol_m_q_t_t_transport_delegate_01-p.html#a90420bb9f04760681e64a4a799fe432b',1,'MQTTTransportDelegate -p']]]
 ];

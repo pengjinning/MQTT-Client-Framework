@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['runloop',['runLoop',['../interface_m_q_t_t_session.html#a49e106f38faead00b6d9d53a77a50472',1,'MQTTSession']]],
-  ['runloopmode',['runLoopMode',['../interface_m_q_t_t_session.html#a3ab2f0926aa51b0dc7969c66bae215e4',1,'MQTTSession']]]
+  ['host',['host',['../interface_m_q_t_t_c_f_socket_transport.html#ae30997b61a8be6b11bf3bb33cf751995',1,'MQTTCFSocketTransport::host()'],['../interface_m_q_t_t_websocket_transport.html#a1e4c2c9fa31f833f46379dc57ca9536d',1,'MQTTWebsocketTransport::host()']]]
 ];

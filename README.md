@@ -1,48 +1,128 @@
-MQTT-Client-Framework
+MQTT-Client-Framework 
 =====================
+
+[![Carthage compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](https://github.com/Carthage/Carthage)
 
 an Objective-C native MQTT Framework http://mqtt.org
 
+### Tested with
+
+* mosquitto
+* paho
+* rabbitmq
+* hivemq
+* rsmb
+* mosca
+* vernemq
+* emqtt
+* moquette
+* ActiveMQ
+* Apollo
+* CloudMQTT
+* aws
+* hbmqtt (MQTTv311 only, limitations)
+
 ### Howto
 
-Add MQTTClient.framework from the dist directory to your IOS project
-or use the CocoaPod MQTTClient
+Use the CocoaPod MQTTClient! 
+
+Add this to your Podfile:
+
+```
+pod 'MQTTClient'
+```
+which is a short for
+```
+pod 'MQTTClient/Min'
+pod 'MQTTClient/Manager'
+```
+
+The Manager subspec includes the MQTTSessionManager class.
+
+Additionally add this subspec if you want to use MQTT over Websockets:
+
+```
+pod 'MQTTClient/Websocket'
+```
+
+If you want to do your logging with CocoaLumberjack (my suggestion), use
+```
+pod 'MQTTClient/MinL'
+pod 'MQTTClient/ManagerL'
+pod 'MQTTClient/WebsocketL'
+```
+instead.
+
+Or use the dynamic library created in the MQTTFramework target.
+
+Or include the source from here.
 
 [Documentation](MQTTClient/dist/documentation/html/index.html)
 
-### License
+### Usage
 
-Copyright (C) 2013, 2014 Christoph Krey
+Create a new client and connect to a broker:
 
-Based on
+```objective-c
+#import "MQTTClient.h"
 
-https://github.com/m2mIO/mqttIO-objC
+\@interface MyDelegate : ... <MQTTSessionDelegate>
+...
 
-Copyright © 2011, 2013 2lemetry, LLC
+        MQTTCFSocketTransport *transport = [[MQTTCFSocketTransport alloc] init];
+        transport.host = @"localhost";
+        transport.port = 1883;
 
-All rights reserved.
+        MQTTSession *session = [[MQTTSession alloc] init];
+        session.transport = transport;
+        
+	session.delegate = self;
 
-Redistribution and use in source and binary forms, with or without modification, are permitted provided that
-the following conditions are met:
+	[session connectAndWaitTimeout:30];  //this is part of the synchronous API
 
-Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer
-in the documentation and/or other materials provided with the distribution.
+```
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
-INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+Subscribe to a topic:
 
+```objective-c
+[session subscribeToTopic:@"example/#" atLevel:2 subscribeHandler:^(NSError *error, NSArray<NSNumber *> *gQoss){
+    if (error) {
+        NSLog(@"Subscription failed %@", error.localizedDescription);
+    } else {
+        NSLog(@"Subscription sucessfull! Granted Qos: %@", gQoss);
+    }
+ }]; // this is part of the block API
 
-#### Framework
+```
 
-Framework build using instructions and scripts by Jeff Verkoeyen https://github.com/jverkoey/iOS-Framework
+Add the following to receive messages for the subscribed topics
+```objective-c
+ - (void)newMessage:(MQTTSession *)session
+	data:(NSData *)data
+	onTopic:(NSString *)topic
+	qos:(MQTTQosLevel)qos
+	retained:(BOOL)retained
+	mid:(unsigned int)mid {
+	// this is one of the delegate callbacks
+}
+```
+
+Publish a message to a topic:
+
+```objective-c
+[session publishAndWaitData:data
+                    onTopic:@"topic"
+                     retain:NO
+	                qos:MQTTQosLevelAtLeastOnce]; // this is part of the asynchronous API
+```
 
 #### docs
 
 Documentation generated with doxygen http://doxygen.org
 
+#### Comparison MQTT Clients for iOS (incomplete)
+
+|Wrapper|---|----|MQTTKit  |Marquette|Moscapsule|Musqueteer|MQTT-Client|MqttSDK|CocoaMQTT|
+|-------|---|----|---------|---------|----------|----------|-----------|-------|---------|
+|       |   |    |Obj-C    |Obj-C    |Swift     |Obj-C     |Obj-C      |Obj-C  |Swift    |
+|Library|IBM|Paho|Mosquitto|Mosquitto|Mosquitto |Mosquitto |native     |native |native   |

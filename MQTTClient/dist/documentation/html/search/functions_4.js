@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['messagedelivered_3amsgid_3a',['messageDelivered:msgID:',['../protocol_m_q_t_t_session_delegate-p.html#a9937e5c9917389b2fde60b1e3a2d390c',1,'MQTTSessionDelegate-p']]]
+  ['evaluateservertrust_3afordomain_3a',['evaluateServerTrust:forDomain:',['../interface_m_q_t_t_s_s_l_security_policy.html#a1d6690010fc530144d98eaf31c9af7e4',1,'MQTTSSLSecurityPolicy']]]
 ];

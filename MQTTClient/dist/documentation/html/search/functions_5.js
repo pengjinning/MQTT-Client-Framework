@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['newmessage_3adata_3aontopic_3aqos_3aretained_3amid_3a',['newMessage:data:onTopic:qos:retained:mid:',['../protocol_m_q_t_t_session_delegate-p.html#a85ecb50aa7dfb9865ec6acfd1192b92c',1,'MQTTSessionDelegate-p']]]
+  ['flowforclientid_3aincomingflag_3amessageid_3a',['flowforClientId:incomingFlag:messageId:',['../protocol_m_q_t_t_persistence-p.html#a2ca81852c486e32d888ef502b8dc47d5',1,'MQTTPersistence-p']]]
 ];
