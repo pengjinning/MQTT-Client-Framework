@@ -3,16 +3,16 @@
 //  MQTTClient
 //
 //  Created by Christoph Krey on 05.12.15.
-//  Copyright © 2015-2016 Christoph Krey. All rights reserved.
+//  Copyright © 2015-2017 Christoph Krey. All rights reserved.
 //
 
 #import <XCTest/XCTest.h>
 
 #import "MQTTLog.h"
-#import "MQTTClient.h"
 #import "MQTTTestHelpers.h"
 #import <SocketRocket/SRWebSocket.h>
 #import "MQTTWebsocketTransport.h"
+#import "MQTTSessionSynchron.h"
 
 @interface MQTTTestWebsockets : MQTTTestHelpers <SRWebSocketDelegate>
 @property (strong, nonatomic) SRWebSocket *websocket;
@@ -22,23 +22,9 @@
 
 @implementation MQTTTestWebsockets
 
-- (void)setUp {
-    [super setUp];
-#ifdef LUMBERJACK
-    if (![[DDLog allLoggers] containsObject:[DDTTYLogger sharedInstance]])
-        [DDLog addLogger:[DDTTYLogger sharedInstance] withLevel:DDLogLevelAll];
-    if (![[DDLog allLoggers] containsObject:[DDASLLogger sharedInstance]])
-        [DDLog addLogger:[DDASLLogger sharedInstance] withLevel:DDLogLevelWarning];
-#endif
-}
-
-- (void)tearDown {
-    [super tearDown];
-}
-
 - (void)testWSTRANSPORT {
     for (NSString *broker in self.brokers.allKeys) {
-        DDLogVerbose(@"testing broker %@", broker);
+        
         NSDictionary *parameters = self.brokers[broker];
         if ([parameters[@"websocket"] boolValue]) {
             
@@ -94,7 +80,7 @@
 
 - (void)testWSConnect {
     for (NSString *broker in self.brokers.allKeys) {
-        DDLogVerbose(@"testing broker %@", broker);
+        
         NSDictionary *parameters = self.brokers[broker];
         if ([parameters[@"websocket"] boolValue]) {
             
@@ -117,7 +103,7 @@
 
 - (void)testWSSubscribe {
     for (NSString *broker in self.brokers.allKeys) {
-        DDLogVerbose(@"testing broker %@", broker);
+        
         NSDictionary *parameters = self.brokers[broker];
         if ([parameters[@"websocket"] boolValue]) {
             
@@ -146,7 +132,7 @@
                 
                 while (!self.timedout) {
                     DDLogVerbose(@"looping for messages");
-                    [self.session publishAndWaitData:[[[NSDate date] description] dataUsingEncoding:NSUTF8StringEncoding]
+                    [self.session publishAndWaitData:[[NSDate date].description dataUsingEncoding:NSUTF8StringEncoding]
                                              onTopic:@"MQTTClient"
                                               retain:false
                                                  qos:MQTTQosLevelAtLeastOnce];
@@ -167,7 +153,7 @@
 
 - (void)testWSSubscribeLong {
     for (NSString *broker in self.brokers.allKeys) {
-        DDLogVerbose(@"testing broker %@", broker);
+        
         NSDictionary *parameters = self.brokers[broker];
         if ([parameters[@"websocket"] boolValue]) {
             
@@ -195,7 +181,7 @@
                 
                 NSString *payload = @"abcdefgh";
                 
-                while (!self.timedout && strlen([[payload substringFromIndex:1] UTF8String]) <= 1000) {
+                while (!self.timedout && strlen([payload substringFromIndex:1].UTF8String) <= 1000) {
                     DDLogVerbose(@"looping for messages");
                     [self.session publishAndWaitData:[payload dataUsingEncoding:NSUTF8StringEncoding]
                                              onTopic:@"MQTTClient"
@@ -219,7 +205,7 @@
 
 - (void)testWSLowLevel {
     for (NSString *broker in self.brokers.allKeys) {
-        DDLogVerbose(@"testing broker %@", broker);
+        
         NSDictionary *parameters = self.brokers[broker];
         if ([parameters[@"websocket"] boolValue]) {
             
@@ -264,7 +250,17 @@
                                                                           willMsg:nil
                                                                           willQoS:MQTTQosLevelAtLeastOnce
                                                                        willRetain:false
-                                                                    protocolLevel:3];
+                                                                    protocolLevel:3
+                                                            sessionExpiryInterval:nil
+                                                                       authMethod:nil
+                                                                         authData:nil
+                                                        requestProblemInformation:nil
+                                                                willDelayInterval:nil
+                                                       requestResponseInformation:nil
+                                                                   receiveMaximum:nil
+                                                                topicAliasMaximum:nil
+                                                                     userProperty:nil
+                                                                maximumPacketSize:nil];
             
             self.timedout = FALSE;
             [self performSelector:@selector(timedout:)
@@ -293,7 +289,7 @@
 - (void)webSocket:(SRWebSocket *)webSocket
 didReceiveMessage:(id)message {
     NSData *data = (NSData *)message;
-    DDLogVerbose(@"webSocket didReceiveMessage %ld", data.length);
+    DDLogVerbose(@"webSocket didReceiveMessage %ld", (unsigned long)data.length);
     self.next = true;
 }
 
@@ -312,7 +308,7 @@ didReceiveMessage:(id)message {
            reason:(NSString *)reason
          wasClean:(BOOL)wasClean {
     DDLogVerbose(@"webSocket didCloseWithCode: %ld %@ %d",
-          (long)code, reason, wasClean);
+                 (long)code, reason, wasClean);
     self.next = true;
 }
 

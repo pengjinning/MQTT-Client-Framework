@@ -1,6 +1,106 @@
 MQTT-Client-Framework iOS/OSX/tvOS Release Notes
 ================================================
 
+## MQTT-Client-Framework 0.9.9
+> Release date 2017-09-21
+    [FIX] added connectTo: version for backward compatibility to MQTTSessionManager
+    Merge pull request #373 from kirillyakimovich/session_manager_reconnection_tests
+    Session manager reconnection test
+    Add run loop parameter
+    1. Removes conditional duplicated logic if on main thread - context.performAndWait is enough
+    2. Uses only one background context - Before even if this object was created from background queue it was using parent main context which would block main thread.
+    [session_manager_reconnection_tests] [UPD] if session manager is connected, we're not trying to connect again
+
+## MQTT-Client-Framework 0.9.8
+> Release date 2017-09-20
+    [FIX] Format string warnings #374
+    [FIX] Xcode9 warnings
+    [FIX] Cocoalumberjack upgrade
+
+## MQTT-Client-Framework 0.9.7
+> Release date 2017-07-26
+
+    [NEW] Logging centrally controlled even without CocoaLumberjack
+    [NEW] Docs as PDF, HTML, and docset
+
+## MQTT-Client-Framework 0.9.6
+> Release date 2017-07-25
+
+    [NEW] Strict parameter checking
+    [NEW] MQTT 3.1.1 CONNECT package does not conform #268
+
+## MQTT-Client-Framework 0.9.5
+> Release date 2017-07-07
+
+    [NEW] MQTTSession and MQTTTransport extension #337
+
+## MQTT-Client-Framework 0.9.4
+> Release date 2017-07-07
+
+    [NEW] Externally define DDLogLevel #330
+
+
+## MQTT-Client-Framework 0.9.3
+> Release date 2017-07-07
+
+    [NEW] Use xcconfig instead of compiler flag #328
+
+## MQTT-Client-Framework 0.9.2
+> Release date 2017-05-24
+
+    [FIX] Regression Error: MQTTSessionManager can't reconnect after applicationDidBecomeActive #312
+
+## MQTT-Client-Framework 0.9.1
+> Release date 2017-05-24
+
+    [NEW] v5 adapted error handling
+    [FIX] Fixed the PUBACK message sent by the client having the message id twice in the message payload #317
+    [NEW] v5 live cycle
+    [NEW] Add a configurable dupTimeout property to MQTTSession #315
+
+## MQTT-Client-Framework 0.9.0
+> Release date 2017-05-10
+
+[FIX] Fix random crashes on core data persistence #314
+[FIX] use_frameworks!
+[FIX] Swift Tests output
+[FIX] CONNACK return codes
+[NEW] access publish data back messageDelivered is called? closes #296
+[FIX] XCode 8.3.1 warnings and documentation
+[NEW] MQTT v5 properties
+[FIX] Reset PUBLISH/PUBREL command's deadline interval when connection closed #302
+[NEW] initial version 5
+
+## MQTT-Client-Framework 0.8.8
+> Release date 2017-04-03
+
+[FIX] Connection Retry after Closed-by-Broker Errors #297
+[NEW] Configurable maxConnectionRetryInterval for MQTTSessionMananger #297
+[FIX] Don't publish QoS 1 or 2 messages immediately if queued messages exists #295
+
+## MQTT-Client-Framework 0.8.7a
+> Release date ?
+
+[NEW] Framework targest for macOS and tvOS
+[FIX] when i use TLS ,get CFNetwork SSLHandshake failed (-9807) #277
+
+## MQTT-Client-Framework 0.8.6/7
+> Release date 2017-01-04
+
+[NEW] Support voip applications #243
+[NEW] Add public emqtt broker to test suite
+[NEW] Use signals for synchronouse calls #250
+[NEW] Configurable connect-in-foreground behaviour #234
+
+[FIX] Documentation update #252
+[FIX] Backward compatibility issue #253
+[FIX] Publish messages by messageId ascending order when using MQTTInMemoryPersistence #247
+[FIX] Adds connectInForeground configuration parameter #223
+[FIX] Correct crashing issue caused by locking on a object which is replaced inside the lock #220
+[FIX] Use an NSLock instead of locking on an object that is often replaced
+[FIX] Adding MQTTSessionManager.h to the umbrella header #213
+[FIX] sharing the scheme to make the project carthage compatible #198
+
 ## MQTT-Client-Framework 0.8.5
 > Release date 2016-09-29
 

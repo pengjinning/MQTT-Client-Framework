@@ -3,7 +3,7 @@
 //  MQTTClient
 //
 //  Created by Christoph Krey on 09.12.15.
-//  Copyright © 2015-2016 Christoph Krey. All rights reserved.
+//  Copyright © 2015-2017 Christoph Krey. All rights reserved.
 //
 
 #import "MQTTLog.h"
@@ -11,84 +11,37 @@
 #import "MQTTCFSocketTransport.h"
 #import "MQTTInMemoryPersistence.h"
 #import "MQTTCoreDataPersistence.h"
-#import "MQTTWebsocketTransport.h"
+//#import "MQTTWebsocketTransport.h"
 #import "MQTTSSLSecurityPolicy.h"
+#import "MQTTSSLSecurityPolicyTransport.h"
 
 @implementation MQTTTestHelpers
 
-- (void)setUp {
-    [super setUp];
-    
-#ifdef LUMBERJACK
-   if (![[DDLog allLoggers] containsObject:[DDTTYLogger sharedInstance]])
-    [DDLog addLogger:[DDTTYLogger sharedInstance] withLevel:DDLogLevelAll];
-    if (![[DDLog allLoggers] containsObject:[DDASLLogger sharedInstance]])
-    [DDLog addLogger:[DDASLLogger sharedInstance] withLevel:DDLogLevelWarning];
-#endif
+static NSDictionary *brokers = nil;
+static NSDictionary *allBrokers = nil;
 
++ (NSDictionary *)broker {
+    return [MQTTTestHelpers allBrokers][@"local"];
+}
+
++ (NSDictionary *)allBrokers {
+    if (allBrokers == nil) {
+        allBrokers = [MQTTTestHelpers loadAllBrokers];
+    }
+    return allBrokers;
+}
+
++ (NSDictionary *)loadAllBrokers {
     NSURL *url = [[NSBundle bundleForClass:[MQTTTestHelpers class]] URLForResource:@"MQTTTestHelpers"
                                                                      withExtension:@"plist"];
     NSDictionary *plist = [NSDictionary dictionaryWithContentsOfURL:url];
-    NSArray *brokerList = [plist objectForKey:@"brokerList"];
-    NSDictionary *brokers = [plist objectForKey:@"brokers"];
+    NSDictionary *plistBrokers = plist[@"brokers"];
+    return plistBrokers;
+}
 
-    self.brokers = [[NSMutableDictionary alloc] init];
-    for (NSString *brokerName in brokerList) {
-        NSDictionary *broker = [brokers objectForKey:brokerName];
-        if (broker) {
-            [self.brokers setObject:broker forKey:brokerName];
-        }
-    }
-//
-//    NSDictionary *eclipseBroker = @{
-//                                    @"host": @"m2m.eclipse.org",
-//                                    @"port": @1883,
-//                                    @"tls": @NO,
-//                                    @"protocollevel": @4,
-//                                    @"timeout": @10
-//                                    };
-//    [self.brokers setObject:eclipseBroker forKey:@"eclipseBroker"];
-//
-//    
-//    NSDictionary *pahoBroker = @{
-//                                 @"host": @"iot.eclipse.org",
-//                                 @"port": @1883,
-//                                 @"tls": @NO,
-//                                 @"protocollevel": @4,
-//                                 @"timeout": @10
-//                                 };
-//    [self.brokers setObject:pahoBroker forKey:@"pahoBroker"];
-//
-//    
-//    NSDictionary *m2mBroker = @{
-//                                @"host": @"q.m2m.io",
-//                                @"port": @1883,
-//                                @"tls": @NO,
-//                                @"protocollevel": @4,
-//                                @"timeout": @10
-//                                };
-//    [self.brokers setObject:m2mBroker forKey:@"m2mBroker"];
-//
-//    
-//    NSDictionary *hivemqBroker = @{
-//                                   @"host": @"broker.mqtt-dashboard.com",
-//                                   @"port": @1883,
-//                                   @"tls": @NO,
-//                                   @"protocollevel": @4,
-//                                   @"timeout": @30
-//                                   };
-//    [self.brokers setObject:hivemqBroker forKey:@"hivemqBroker"];
-//
-//    
-//    NSDictionary *rabbitmqBroker = @{
-//                                     @"host": @"dev.rabbitmq.com",
-//                                     @"port": @1883,
-//                                     @"tls": @NO,
-//                                     @"protocollevel": @4,
-//                                     @"timeout": @10
-//                                     };
-//    [self.brokers setObject:rabbitmqBroker forKey:@"rabbitmqBroker"];
-
+- (void)setUp {
+    [super setUp];
+    [MQTTLog setLogLevel:DDLogLevelOff];
     self.timer = [NSTimer scheduledTimerWithTimeInterval:1
                                                   target:self
                                                 selector:@selector(ticker:)
@@ -143,13 +96,29 @@
 }
 
 - (void)timedout:(id)object {
-    DDLogVerbose(@"[MQTTTestHelpers] timedout");
+    DDLogWarn(@"[MQTTTestHelpers] timedout");
     self.timedout = TRUE;
 }
 
 - (void)messageDelivered:(MQTTSession *)session msgID:(UInt16)msgID {
     DDLogVerbose(@"[MQTTTestHelpers] messageDelivered %d", msgID);
     self.deliveredMessageMid = msgID;
+}
+
+- (void)messageDelivered:(MQTTSession *)session
+                   msgID:(UInt16)msgID
+                   topic:(NSString *)topic
+                    data:(NSData *)data
+                     qos:(MQTTQosLevel)qos
+              retainFlag:(BOOL)retainFlag {
+    DDLogVerbose(@"[MQTTTestHelpers] messageDelivered %d q%d r%d %@:%@",
+                 msgID,
+                 qos,
+                 retainFlag,
+                 topic,
+                 (data.length < 64 ?
+                  data.description :
+                  [data subdataWithRange:NSMakeRange(0, 64)].description));
 }
 
 - (void)newMessage:(MQTTSession *)session data:(NSData *)data onTopic:(NSString *)topic qos:(MQTTQosLevel)qos retained:(BOOL)retained mid:(unsigned int)mid {
@@ -161,8 +130,11 @@
     }
 }
 
-- (void)handleMessage:(NSData *)data onTopic:(NSString *)topic retained:(BOOL)retained {
-    DDLogVerbose(@"[MQTTTestHelpers] handleMessage r%d %@:%@",
+- (void)sessionManager:(MQTTSessionManager *)sessionManager
+     didReceiveMessage:(NSData *)data
+               onTopic:(NSString *)topic
+              retained:(BOOL)retained {
+    DDLogVerbose(@"[MQTTTestHelpers] didReceiveMessage r%d %@:%@",
                  retained, topic, data);
     if (topic && [topic hasPrefix:@"$"]) {
         self.SYSreceived = true;
@@ -173,6 +145,16 @@
     DDLogVerbose(@"[MQTTTestHelpers] handleEvent:%ld error:%@", (long)eventCode, error);
     self.event = eventCode;
     self.error = error;
+}
+
+- (void)connected:(MQTTSession *)session sessionPresent:(BOOL)sessionPresent {
+    self.connected = TRUE;
+    self.sessionPresent = sessionPresent;
+}
+
+- (void)connectionRefused:(MQTTSession *)session error:(NSError *)error {
+    self.error = error;
+    self.connectionError = error;
 }
 
 - (void)sending:(MQTTSession *)session
@@ -201,14 +183,14 @@
 
 - (void)subAckReceived:(MQTTSession *)session msgID:(UInt16)msgID grantedQoss:(NSArray *)qoss
 {
-    DDLogVerbose(@"[MQTTTestHelpers] subAckReceived:%d grantedQoss:%@", msgID, qoss);
+    DDLogInfo(@"[MQTTTestHelpers] subAckReceived:%d grantedQoss:%@", msgID, qoss);
     self.subMid = msgID;
     self.qoss = qoss;
 }
 
 - (void)unsubAckReceived:(MQTTSession *)session msgID:(UInt16)msgID
 {
-    DDLogVerbose(@"[MQTTTestHelpers] unsubAckReceived:%d", msgID);
+    DDLogInfo(@"[MQTTTestHelpers] unsubAckReceived:%d", msgID);
     self.unsubMid = msgID;
 }
 
@@ -240,7 +222,7 @@
                 NSData *certificateData = [NSData dataWithContentsOfFile:path];
                 if (certificateData) {
                     securityPolicy = [MQTTSSLSecurityPolicy policyWithPinningMode:MQTTSSLPinningModeCertificate];
-                    securityPolicy.pinnedCertificates = [[NSArray alloc] initWithObjects:certificateData, nil];
+                    securityPolicy.pinnedCertificates = @[certificateData];
                 } else {
                     DDLogError(@"[MQTTTestHelpers] error reading cer file");
                 }
@@ -295,16 +277,20 @@
     id<MQTTTransport> transport;
     
     if ([parameters[@"websocket"] boolValue]) {
-        MQTTWebsocketTransport *websocketTransport = [[MQTTWebsocketTransport alloc] init];
-        websocketTransport.host = parameters[@"host"];
-        websocketTransport.port = [parameters[@"port"] intValue];
-        websocketTransport.tls = [parameters[@"tls"] boolValue];
-        if (parameters[@"path"]) {
-            websocketTransport.path = parameters[@"path"];
-        }
-        websocketTransport.allowUntrustedCertificates = [parameters[@"allowUntrustedCertificates"] boolValue];
-
-        transport = websocketTransport;
+        NSException *exception = [NSException exceptionWithName:@"WebSockets tests currently disabled" reason:@"" userInfo:nil];
+        @throw exception;
+        /*
+         MQTTWebsocketTransport *websocketTransport = [[MQTTWebsocketTransport alloc] init];
+         websocketTransport.host = parameters[@"host"];
+         websocketTransport.port = [parameters[@"port"] intValue];
+         websocketTransport.tls = [parameters[@"tls"] boolValue];
+         if (parameters[@"path"]) {
+         websocketTransport.path = parameters[@"path"];
+         }
+         websocketTransport.allowUntrustedCertificates = [parameters[@"allowUntrustedCertificates"] boolValue];
+         
+         transport = websocketTransport;
+         */
     } else {
         MQTTSSLSecurityPolicy *securityPolicy = [MQTTTestHelpers securityPolicy:parameters];
         if (securityPolicy) {
@@ -314,7 +300,7 @@
             sslSecPolTransport.tls = [parameters[@"tls"] boolValue];
             sslSecPolTransport.certificates = [MQTTTestHelpers clientCerts:parameters];
             sslSecPolTransport.securityPolicy = securityPolicy;
-
+            
             transport = sslSecPolTransport;
         } else {
             MQTTCFSocketTransport *cfSocketTransport = [[MQTTCFSocketTransport alloc] init];
@@ -332,11 +318,11 @@
     MQTTSession *session = [[MQTTSession alloc] init];
     session.transport = [MQTTTestHelpers transport:parameters];
     session.clientId = nil;
+    session.sessionExpiryInterval = @0;
     session.userName = parameters[@"user"];
     session.password = parameters[@"pass"];
     session.protocolLevel = [parameters[@"protocollevel"] intValue];
     session.persistence = [MQTTTestHelpers persistence:parameters];
-    session.securityPolicy = [MQTTTestHelpers securityPolicy:parameters];
     return session;
 }
 

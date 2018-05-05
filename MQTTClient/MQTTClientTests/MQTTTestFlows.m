@@ -3,13 +3,12 @@
 //  MQTTClient
 //
 //  Created by Christoph Krey on 08.07.14.
-//  Copyright © 2014-2016 Christoph Krey. All rights reserved.
+//  Copyright © 2014-2017 Christoph Krey. All rights reserved.
 //
 
 #import <XCTest/XCTest.h>
 
 #import "MQTTLog.h"
-#import "MQTTClient.h"
 #import "MQTTTestHelpers.h"
 
 @interface ATest : NSObject <MQTTSessionDelegate>
@@ -30,9 +29,9 @@
 @property (nonatomic) BOOL closed;
 @property (nonatomic) BOOL subscribed;
 
-
-
 @end
+
+#define COUNT 100
 
 @implementation ATest
 
@@ -47,6 +46,7 @@
     self.deliveredCounter = 0;
     self.receivedCounter = 0;
     self.processedCounter = 0;
+    
     return self;
 }
 
@@ -76,13 +76,11 @@
 }
 
 - (void)pub:(MQTTQosLevel)qos count:(NSInteger)count {
-    NSString *message = [NSString stringWithFormat:@"data %5ld", count];
+    NSString *message = [NSString stringWithFormat:@"data %5ld", (long)count];
     UInt16 msgID = [self.session publishData:[message dataUsingEncoding:NSUTF8StringEncoding] onTopic:@"MQTTClient" retain:NO qos:qos];
     if (qos == MQTTQosLevelAtMostOnce || msgID > 0) {
         self.publishedCounter++;
         DDLogVerbose(@"published(%ld): msgID:%d", (long)self.publishedCounter, msgID);
-    } else {
-        DDLogWarn(@"message dropped(%ld): msgID:%d", (long)self.publishedCounter, msgID);
     }
     if (qos == MQTTQosLevelAtMostOnce) {
         self.deliveredCounter++;
@@ -90,7 +88,11 @@
 }
 
 - (void)close {
-    [self.session close];
+    [self.session closeWithReturnCode:MQTTSuccess
+                sessionExpiryInterval:nil
+                         reasonString:nil
+                         userProperty:nil
+                    disconnectHandler:nil];
 }
 
 - (void)stop {
@@ -109,32 +111,32 @@
 
 - (void)messageDelivered:(MQTTSession *)session msgID:(UInt16)msgID {
     self.deliveredCounter++;
-    DDLogVerbose(@"messageDelivered(%ld): msgID:%d", (long)self.deliveredCounter, msgID);
+    DDLogInfo(@"messageDelivered(%ld): msgID:%d", (long)self.deliveredCounter, msgID);
 }
 
 - (BOOL)newMessageWithFeedback:(MQTTSession *)session data:(NSData *)data onTopic:(NSString *)topic qos:(MQTTQosLevel)qos retained:(BOOL)retained mid:(unsigned int)mid {
     NSString *message = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
     
     if (self.processedCounter > self.receivedCounter - self.processingBuffer) {
-        DDLogVerbose(@"newMessageWithFeedback(%ld/%ld/%ld) accepted:%@ onTopic:%@ qos:%d retained:%d mid:%d",
-              (long)self.processedCounter,
-              (long)self.receivedCounter,
-              (long)self.processingBuffer,
-              message, topic, qos, retained, mid);
+        DDLogInfo(@"newMessageWithFeedback(%ld/%ld/%ld) accepted:%@ onTopic:%@ qos:%d retained:%d mid:%d",
+                  (long)self.processedCounter,
+                  (long)self.receivedCounter,
+                  (long)self.processingBuffer,
+                  message, topic, qos, retained, mid);
         self.receivedCounter++;
         return true;
     } else {
-        DDLogVerbose(@"newMessageWithFeedback(%ld/%ld/%ld) rejected:%@ onTopic:%@ qos:%d retained:%d mid:%d",
-              (long)self.processedCounter,
-              (long)self.receivedCounter,
-              (long)self.processingBuffer,
-              message, topic, qos, retained, mid);
+        DDLogInfo(@"newMessageWithFeedback(%ld/%ld/%ld) rejected:%@ onTopic:%@ qos:%d retained:%d mid:%d",
+                  (long)self.processedCounter,
+                  (long)self.receivedCounter,
+                  (long)self.processingBuffer,
+                  message, topic, qos, retained, mid);
         return false;
     }
 }
 
 - (void)handleEvent:(MQTTSession *)session event:(MQTTSessionEvent)eventCode error:(NSError *)error {
-    DDLogVerbose(@"handleEvent:%ld error:%@", eventCode, error);
+    DDLogVerbose(@"handleEvent:%ld error:%@", (long)eventCode, error);
     if (eventCode == MQTTSessionEventConnectionClosed || eventCode == MQTTSessionEventConnectionClosedByBroker) {
         self.closed = true;
     }
@@ -144,7 +146,7 @@
 - (void)processingSimulation:(NSTimer *)timer {
     if (self.receivedCounter > self.processedCounter) {
         self.processedCounter++;
-        DDLogVerbose(@"processed %ld/%ld", (long)self.processedCounter, (long)self.receivedCounter);
+        DDLogInfo(@"processed %ld/%ld", (long)self.processedCounter, (long)self.receivedCounter);
     }
 }
 
@@ -172,24 +174,8 @@
 
 @implementation MQTTTestFlows
 
-- (void)setUp {
-    [super setUp];
-#ifdef LUMBERJACK
-    if (![[DDLog allLoggers] containsObject:[DDTTYLogger sharedInstance]])
-        [DDLog addLogger:[DDTTYLogger sharedInstance] withLevel:DDLogLevelAll];
-    if (![[DDLog allLoggers] containsObject:[DDASLLogger sharedInstance]])
-        [DDLog addLogger:[DDASLLogger sharedInstance] withLevel:DDLogLevelWarning];
-#endif
-}
-
-- (void)tearDown {
-    [super tearDown];
-}
-
-
-
-- (void)testFlow0 {
-    [self testAnyFlow:1000
+- (void)SLOWtestFlow0 {
+    [self testAnyFlow:COUNT
         subscriberQos:MQTTQosLevelAtMostOnce
          publisherQos:MQTTQosLevelAtMostOnce
    secondPublisherQos:MQTTQosLevelAtMostOnce
@@ -198,11 +184,11 @@
 secondPublisherWindow:32
      processingBuffer:2000
        processingTime:0.001
-              timeout:60];
+              timeout:300];
 }
 
 - (void)testFlow1 {
-    [self testAnyFlow:1000
+    [self testAnyFlow:COUNT
         subscriberQos:MQTTQosLevelAtLeastOnce
          publisherQos:MQTTQosLevelAtLeastOnce
    secondPublisherQos:MQTTQosLevelAtLeastOnce
@@ -211,11 +197,11 @@ secondPublisherWindow:32
 secondPublisherWindow:512
      processingBuffer:512
        processingTime:0.01
-              timeout:180];
+              timeout:300];
 }
 
-- (void)testFlow2 {
-    [self testAnyFlow:1000
+- (void)SLOWtestFlow2 {
+    [self testAnyFlow:COUNT
         subscriberQos:MQTTQosLevelExactlyOnce
          publisherQos:MQTTQosLevelExactlyOnce
    secondPublisherQos:MQTTQosLevelExactlyOnce
@@ -228,7 +214,7 @@ secondPublisherWindow:32
 }
 
 - (void)testFlowFastSubscriber {
-    [self testAnyFlow:1000
+    [self testAnyFlow:COUNT
         subscriberQos:MQTTQosLevelExactlyOnce
          publisherQos:MQTTQosLevelExactlyOnce
    secondPublisherQos:MQTTQosLevelExactlyOnce
@@ -241,8 +227,8 @@ secondPublisherWindow:64
     
 }
 
-- (void)testFlowUnreliableSubscriber {
-    [self testAnyFlow:1000
+- (void)SLOWtestFlowUnreliableSubscriber {
+    [self testAnyFlow:COUNT
         subscriberQos:MQTTQosLevelExactlyOnce
          publisherQos:MQTTQosLevelExactlyOnce
    secondPublisherQos:MQTTQosLevelExactlyOnce
@@ -254,8 +240,8 @@ secondPublisherWindow:32
               timeout:500];
 }
 
-- (void)testFlowUnreliableSubscriberQos1and2 {
-    [self testAnyFlow:1000
+- (void)SLOWtestFlowUnreliableSubscriberQos1and2 {
+    [self testAnyFlow:COUNT
         subscriberQos:MQTTQosLevelExactlyOnce
          publisherQos:MQTTQosLevelExactlyOnce
    secondPublisherQos:MQTTQosLevelAtLeastOnce
@@ -267,8 +253,8 @@ secondPublisherWindow:32
               timeout:500];
 }
 
-- (void)testFlowSlowSubscriberQos1and2 {
-    [self testAnyFlow:1000
+- (void)SLOWtestFlowSlowSubscriberQos1and2 {
+    [self testAnyFlow:COUNT
         subscriberQos:MQTTQosLevelExactlyOnce
          publisherQos:MQTTQosLevelExactlyOnce
    secondPublisherQos:MQTTQosLevelAtLeastOnce
@@ -282,7 +268,7 @@ secondPublisherWindow:2000
 
 
 - (void)testFlowSharedSession0 {
-    [self testAnyFlowSharedSession:1000
+    [self testAnyFlowSharedSession:COUNT
                      subscriberQos:MQTTQosLevelAtMostOnce
                       publisherQos:MQTTQosLevelAtMostOnce
                 secondPublisherQos:MQTTQosLevelAtMostOnce
@@ -293,7 +279,7 @@ secondPublisherWindow:2000
 }
 
 - (void)testFlowSharedSession1 {
-    [self testAnyFlowSharedSession:1000
+    [self testAnyFlowSharedSession:COUNT
                      subscriberQos:MQTTQosLevelAtLeastOnce
                       publisherQos:MQTTQosLevelAtLeastOnce
                 secondPublisherQos:MQTTQosLevelAtLeastOnce
@@ -304,7 +290,7 @@ secondPublisherWindow:2000
 }
 
 - (void)testFlowSharedSession1small {
-    [self testAnyFlowSharedSession:1000
+    [self testAnyFlowSharedSession:COUNT
                      subscriberQos:MQTTQosLevelAtLeastOnce
                       publisherQos:MQTTQosLevelAtLeastOnce
                 secondPublisherQos:MQTTQosLevelAtLeastOnce
@@ -314,8 +300,8 @@ secondPublisherWindow:2000
                            timeout:600];
 }
 
-- (void)testFlowSharedSession2 {
-    [self testAnyFlowSharedSession:1000
+- (void)SLOWtestFlowSharedSession2 {
+    [self testAnyFlowSharedSession:COUNT
                      subscriberQos:MQTTQosLevelExactlyOnce
                       publisherQos:MQTTQosLevelExactlyOnce
                 secondPublisherQos:MQTTQosLevelExactlyOnce
@@ -325,8 +311,8 @@ secondPublisherWindow:2000
                            timeout:600];
 }
 
-- (void)testFlowSharedSession12 {
-    [self testAnyFlowSharedSession:1000
+- (void)SLOWtestFlowSharedSession12 {
+    [self testAnyFlowSharedSession:COUNT
                      subscriberQos:MQTTQosLevelAtLeastOnce
                       publisherQos:MQTTQosLevelExactlyOnce
                 secondPublisherQos:MQTTQosLevelAtLeastOnce
@@ -348,6 +334,7 @@ secondPublisherWindow:(NSInteger)secondPublisherWindow
      processingTime:(NSTimeInterval)processingTime
             timeout:(NSTimeInterval)timeout {
     
+    
     self.subscriberQos = subscriberQos;
     self.publisherQos = publisherQos;
     self.secondPublisherQos = secondPublisherQos;
@@ -359,42 +346,39 @@ secondPublisherWindow:(NSInteger)secondPublisherWindow
     self.processingTime = processingTime;
     self.timeout = timeout;
     
-    for (NSString *broker in self.brokers.allKeys) {
-        DDLogVerbose(@"testing broker %@", broker);
-        self.parameters = self.brokers[broker];
-        
-        [NSObject cancelPreviousPerformRequestsWithTarget:self];
-        self.timedout = FALSE;
-        [self performSelector:@selector(timedout:) withObject:nil afterDelay:self.timeout];
-        
-        NSThread *subscriberThread = [[NSThread alloc] initWithTarget:self
-                                                             selector:@selector(runSubscriber:) object:self.parameters];
-        NSThread *publisherThread  = [[NSThread alloc] initWithTarget:self
-                                                             selector:@selector(runPublisher:)
-                                      
-                                                               object:self.parameters];
-        NSThread *secondPublisherThread  = [[NSThread alloc] initWithTarget:self
-                                                                   selector:@selector(runSecondPublisher:)
-                                                                     object:self.parameters];
-        
-        [subscriberThread start];
-        while (!self.subscriberReady)  {
-            [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1]];
-        }
-        
-        [publisherThread start];
-        [secondPublisherThread start];
-        
-        while ((publisherThread.isExecuting || secondPublisherThread.isExecuting || subscriberThread.isExecuting) && !self.timedout) {
-            [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1]];
-        }
-        
-        [secondPublisherThread cancel];
-        [publisherThread cancel];
-        [subscriberThread cancel];
-        
-        XCTAssert(!self.timedout, @"timedout");
+    self.parameters = MQTTTestHelpers.broker;
+    
+    [NSObject cancelPreviousPerformRequestsWithTarget:self];
+    self.timedout = FALSE;
+    [self performSelector:@selector(timedout:) withObject:nil afterDelay:self.timeout];
+    
+    NSThread *subscriberThread = [[NSThread alloc] initWithTarget:self
+                                                         selector:@selector(runSubscriber:) object:self.parameters];
+    NSThread *publisherThread  = [[NSThread alloc] initWithTarget:self
+                                                         selector:@selector(runPublisher:)
+                                  
+                                                           object:self.parameters];
+    NSThread *secondPublisherThread  = [[NSThread alloc] initWithTarget:self
+                                                               selector:@selector(runSecondPublisher:)
+                                                                 object:self.parameters];
+    
+    [subscriberThread start];
+    while (!self.subscriberReady)  {
+        [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1]];
     }
+    
+    [publisherThread start];
+    [secondPublisherThread start];
+    
+    while ((publisherThread.isExecuting || secondPublisherThread.isExecuting || subscriberThread.isExecuting) && !self.timedout) {
+        [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1]];
+    }
+    
+    [secondPublisherThread cancel];
+    [publisherThread cancel];
+    [subscriberThread cancel];
+    
+    XCTAssert(!self.timedout, @"timedout");
 }
 
 - (void)testAnyFlowSharedSession:(NSInteger)count
@@ -405,7 +389,7 @@ secondPublisherWindow:(NSInteger)secondPublisherWindow
                 processingBuffer:(NSInteger)processingBuffer
                   processingTime:(NSTimeInterval)processingTime
                          timeout:(NSTimeInterval)timeout {
-    
+        
     self.subscriberQos = subscriberQos;
     self.publisherQos = publisherQos;
     self.secondPublisherQos = secondPublisherQos;
@@ -417,50 +401,49 @@ secondPublisherWindow:(NSInteger)secondPublisherWindow
     self.processingTime = processingTime;
     self.timeout = timeout;
     
-    for (NSString *broker in self.brokers.allKeys) {
-        DDLogVerbose(@"testing broker %@", broker);
-        self.parameters = self.brokers[broker];
-        
-        [NSObject cancelPreviousPerformRequestsWithTarget:self];
-        self.timedout = FALSE;
-        [self performSelector:@selector(timedout:) withObject:nil afterDelay:self.timeout];
-        
-        ATest *test = [[ATest alloc] init];
-        NSThread *subscriberThread = [[NSThread alloc] initWithTarget:self
-                                                             selector:@selector(runSharedSubscriber:)
-                                                               object:test];
-        NSThread *publisherThread  = [[NSThread alloc] initWithTarget:self
-                                                             selector:@selector(runSharedPublisher:)
-                                                               object:test];
-        NSThread *secondPublisherThread  = [[NSThread alloc] initWithTarget:self
-                                                                   selector:@selector(runSharedSecondPublisher:)
-                                                                     object:test];
-        
-        [subscriberThread start];
-        while (!self.subscriberReady)  {
-            [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1]];
-        }
-        
-        [publisherThread start];
-        [secondPublisherThread start];
-        
-        while ((publisherThread.isExecuting || secondPublisherThread.isExecuting || subscriberThread.isExecuting) && !self.timedout) {
-            [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1]];
-        }
-        
-        [secondPublisherThread cancel];
-        [publisherThread cancel];
-        [subscriberThread cancel];
-        
-        XCTAssert(!self.timedout, @"timedout");
-        [test stop];
+    self.parameters = MQTTTestHelpers.broker;
+    
+    [NSObject cancelPreviousPerformRequestsWithTarget:self];
+    self.timedout = FALSE;
+    [self performSelector:@selector(timedout:) withObject:nil afterDelay:self.timeout];
+    
+    ATest *test = [[ATest alloc] init];
+    NSThread *subscriberThread = [[NSThread alloc] initWithTarget:self
+                                                         selector:@selector(runSharedSubscriber:)
+                                                           object:test];
+    NSThread *publisherThread  = [[NSThread alloc] initWithTarget:self
+                                                         selector:@selector(runSharedPublisher:)
+                                                           object:test];
+    NSThread *secondPublisherThread  = [[NSThread alloc] initWithTarget:self
+                                                               selector:@selector(runSharedSecondPublisher:)
+                                                                 object:test];
+    
+    [subscriberThread start];
+    while (!self.subscriberReady)  {
+        [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1]];
     }
+    
+    [publisherThread start];
+    [secondPublisherThread start];
+    
+    while ((publisherThread.isExecuting || secondPublisherThread.isExecuting || subscriberThread.isExecuting) && !self.timedout) {
+        [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1]];
+    }
+    
+    [secondPublisherThread cancel];
+    [publisherThread cancel];
+    [subscriberThread cancel];
+    
+    XCTAssert(!self.timedout, @"timedout");
+    [test stop];
     
 }
 
 - (void)runSubscriber:(NSDictionary *)parameters {
     ATest *test = [[ATest alloc] init];
     [test setup:parameters];
+    test.session.clientId = @"MQTTClientS";
+    
     [test start:self.processingBuffer processingTime:self.processingTime maxMessages:self.subscriberWindow];
     
     while (!test.connected) {
@@ -479,10 +462,11 @@ secondPublisherWindow:(NSInteger)secondPublisherWindow
         self.subscriberReady = true;
         test.session.cleanSessionFlag = false;
         
-//        while (test.processedCounter < self.count * 2)  {
-//            [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1]];
-//        }
-//        
+        while (test.processedCounter < self.count * 2)  {
+            DDLogInfo(@"waiting for processing (%ld)", (long)test.processedCounter);
+            [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1]];
+        }
+        
         [test close];
         
         while (!test.closed) {
@@ -498,6 +482,8 @@ secondPublisherWindow:(NSInteger)secondPublisherWindow
 {
     ATest *test = [[ATest alloc] init];
     [test setup:parameters];
+    test.session.clientId = @"MQTTClientP1";
+    
     [test start:0 processingTime:0 maxMessages:self.publisherWindow];
     
     while (!test.connected) {
@@ -532,6 +518,8 @@ secondPublisherWindow:(NSInteger)secondPublisherWindow
 {
     ATest *test = [[ATest alloc] init];
     [test setup:parameters];
+    test.session.clientId = @"MQTTClientP2";
+    
     [test start:0 processingTime:0 maxMessages:self.secondPublisherWindow];
     
     while (!test.connected) {
@@ -570,13 +558,15 @@ secondPublisherWindow:(NSInteger)secondPublisherWindow
                                                      repeats:true];
     
     [test setup:self.parameters];
+    test.session.clientId = @"MQTTClientShared";
+    
     [test start:self.processingBuffer processingTime:self.processingTime maxMessages:self.subscriberWindow];
     
     while (!test.connected) {
         DDLogVerbose(@"waiting for connection");
         [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1]];
     }
-
+    
     if (test.session.status == MQTTSessionStatusConnected) {
         
         [test sub:self.subscriberQos];
@@ -589,7 +579,7 @@ secondPublisherWindow:(NSInteger)secondPublisherWindow
         test.session.cleanSessionFlag = false;
         
         while (test.processedCounter < self.count)  {
-            DDLogVerbose(@"waiting for processing (%ld)", (long)test.processedCounter);
+            DDLogInfo(@"waiting for processing (%ld)", (long)test.processedCounter);
             [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1]];
         }
     }
@@ -603,17 +593,17 @@ secondPublisherWindow:(NSInteger)secondPublisherWindow
                                                     userInfo:@"runSharedPublisher"
                                                      repeats:true];
     
-
+    
     if (test.session.status == MQTTSessionStatusConnected) {
         
-            while (test.publishedCounter < self.count)  {
-                @synchronized(test.session) {
-                    if (test.publishedCounter < self.count) {
-                        [test pub:self.publisherQos count:test.publishedCounter + 100000];
-                    }
+        while (test.publishedCounter < self.count)  {
+            @synchronized(test.session) {
+                if (test.publishedCounter < self.count) {
+                    [test pub:self.publisherQos count:test.publishedCounter + 100000];
                 }
-                [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
             }
+            [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
+        }
         
         while (test.deliveredCounter < self.count)  {
             [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1]];
@@ -628,7 +618,7 @@ secondPublisherWindow:(NSInteger)secondPublisherWindow
                                                     selector:@selector(ticker:)
                                                     userInfo:@"runSharedSecondPublisher"
                                                      repeats:true];
-
+    
     if (test.session.status == MQTTSessionStatusConnected) {
         
         

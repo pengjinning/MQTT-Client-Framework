@@ -3,13 +3,12 @@
 //  MQTTClientTests
 //
 //  Created by Christoph Krey on 13.01.14.
-//  Copyright © 2014-2016 Christoph Krey. All rights reserved.
+//  Copyright © 2014-2017 Christoph Krey. All rights reserved.
 //
 
 #import <XCTest/XCTest.h>
 
 #import "MQTTLog.h"
-#import "MQTTClient.h"
 #import "MQTTTestHelpers.h"
 
 @interface MQTTClientOnlyTests : MQTTTestHelpers
@@ -17,64 +16,48 @@
 
 @implementation MQTTClientOnlyTests
 
-- (void)setUp {
-    [super setUp];
-    
-#ifdef LUMBERJACK
-    if (![[DDLog allLoggers] containsObject:[DDTTYLogger sharedInstance]])
-        [DDLog addLogger:[DDTTYLogger sharedInstance] withLevel:DDLogLevelAll];
-    if (![[DDLog allLoggers] containsObject:[DDASLLogger sharedInstance]])
-        [DDLog addLogger:[DDASLLogger sharedInstance] withLevel:DDLogLevelWarning];
-#endif
-    
-}
-
 - (void)tearDown {
-    [self.session close];
+    [self.session closeWithReturnCode:MQTTSuccess
+                sessionExpiryInterval:nil
+                         reasonString:nil
+                         userProperty:nil
+                    disconnectHandler:nil];
     self.session.delegate = nil;
     self.session = nil;
-
+    
     [super tearDown];
 }
 
-- (void)test_connect_host_not_found {
-    for (NSString *broker in self.brokers.allKeys) {
-        DDLogVerbose(@"testing broker %@", broker);
-        NSMutableDictionary *parameters = [self.brokers[broker] mutableCopy];
-        
-        [parameters setObject:@"abc" forKey:@"host"];
-        self.session = [MQTTTestHelpers session:parameters];
-        self.session.delegate = self;
-        self.event = -1;
-        [self.session connect];
-        while (self.event == -1) {
-            [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1]];
-        }
-        XCTAssertNotEqual(self.event, (NSInteger)MQTTSessionEventConnected, @"MQTTSessionEventConnected %@", self.error);
-        XCTAssertNotEqual(self.event, (NSInteger)MQTTSessionEventConnectionRefused, @"MQTTSessionEventConnectionRefused %@", self.error);
-        XCTAssertNotEqual(self.event, (NSInteger)MQTTSessionEventProtocolError, @"MQTTSessionEventProtocolError %@", self.error);
-    }
+- (void)testConnectToWrongHostResultsInError {
+    XCTestExpectation *expectation = [self expectationWithDescription:@""];
+    
+    NSMutableDictionary *parameters = [MQTTTestHelpers.broker mutableCopy];
+    
+    parameters[@"host"] = @"abc";
+    self.session = [MQTTTestHelpers session:parameters];
+    [self.session connectWithConnectHandler:^(NSError *error) {
+        XCTAssertNotNil(error);
+        XCTAssertEqual(self.session.status, MQTTSessionStatusClosed);
+        [expectation fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:10 handler:nil];
+    
 }
 
-
-- (void)test_connect_1889 {
-    for (NSString *broker in self.brokers.allKeys) {
-        DDLogVerbose(@"testing broker %@", broker);
-        NSMutableDictionary *parameters = [self.brokers[broker] mutableCopy];
-        
-        [parameters setObject:@1889 forKey:@"port"];
-
-        self.session = [MQTTTestHelpers session:parameters];
-        self.session.delegate = self;
-        self.event = -1;
-        [self.session connect];
-        while (self.event == -1) {
-            [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1]];
-        }
-        XCTAssertNotEqual(self.event, (NSInteger)MQTTSessionEventConnected, @"MQTTSessionEventConnected %@", self.error);
-        XCTAssertNotEqual(self.event, (NSInteger)MQTTSessionEventConnectionRefused, @"MQTTSessionEventConnectionRefused %@", self.error);
-        XCTAssertNotEqual(self.event, (NSInteger)MQTTSessionEventProtocolError, @"MQTTSessionEventProtocolErrorr %@", self.error);
-    }
+- (void)testConnectToWrongPort1884ResultsInError {
+    XCTestExpectation *expectation = [self expectationWithDescription:@""];
+    
+    NSMutableDictionary *parameters = [MQTTTestHelpers.broker mutableCopy];
+    
+    parameters[@"port"] = @1884;
+    self.session = [MQTTTestHelpers session:parameters];
+    [self.session connectWithConnectHandler:^(NSError *error) {
+        XCTAssertNotNil(error);
+        XCTAssertEqual(self.session.status, MQTTSessionStatusClosed);
+        [expectation fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:10 handler:nil];
+    
 }
 
 @end

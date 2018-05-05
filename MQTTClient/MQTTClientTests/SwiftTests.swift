@@ -3,7 +3,7 @@
 //  MQTTClient
 //
 //  Created by Christoph Krey on 14.01.15.
-//  Copyright © 2015-2016 Christoph Krey. All rights reserved.
+//  Copyright © 2015-2017 Christoph Krey. All rights reserved.
 //
 
 import Foundation
@@ -95,7 +95,7 @@ class SwiftTests : MQTTTestHelpers {
             )
             
             while (m.state != .connected) {
-                print("waiting for connect %d", m.state);
+                print("waiting for connect \(m.state)");
                 RunLoop.current.run(until: Date(timeIntervalSinceNow: 1))
             }
             

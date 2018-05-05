@@ -1,13 +1,13 @@
 Pod::Spec.new do |mqttc|
 	mqttc.name         = "MQTTClient"
-	mqttc.version      = "0.8.5"
-	mqttc.summary      = "iOS, OSX and tvOS native ObjectiveC MQTT Client Framework"
-	mqttc.homepage     = "https://github.com/ckrey/MQTT-Client-Framework"
+	mqttc.version      = "0.14.0"
+	mqttc.summary      = "iOS, macOS and tvOS native ObjectiveC MQTT Client Framework"
+	mqttc.homepage     = "https://github.com/novastone-media/MQTT-Client-Framework"
 	mqttc.license      = { :type => "EPLv1", :file => "LICENSE" }
-	mqttc.author       = { "Christoph Krey" => "krey.christoph@gmail.com" }
+	mqttc.author       = { "novastonemedia" => "ios@novastonemedia.com" }
 	mqttc.source       = {
-		:git => "https://github.com/ckrey/MQTT-Client-Framework.git",
-		:tag => "0.8.5",
+		:git => "https://github.com/novastone-media/MQTT-Client-Framework.git",
+		:tag => "0.14.0",
 		:submodules => true
 	}
 
@@ -30,7 +30,8 @@ Pod::Spec.new do |mqttc|
 					"MQTTClient/MQTTClient/MQTTCoreDataPersistence.{h,m}",
 					"MQTTClient/MQTTClient/MQTTDecoder.{h,m}",
 					"MQTTClient/MQTTClient/MQTTInMemoryPersistence.{h,m}",
-					"MQTTClient/MQTTClient/MQTTLog.h",
+					"MQTTClient/MQTTClient/MQTTLog.{h,m}",
+					"MQTTClient/MQTTClient/MQTTStrict.{h,m}",
 					"MQTTClient/MQTTClient/MQTTClient.h",
 					"MQTTClient/MQTTClient/MQTTMessage.{h,m}",
 					"MQTTClient/MQTTClient/MQTTPersistence.h",
@@ -38,21 +39,25 @@ Pod::Spec.new do |mqttc|
 					"MQTTClient/MQTTClient/MQTTSSLSecurityPolicyDecoder.{h,m}",
 					"MQTTClient/MQTTClient/MQTTSSLSecurityPolicyEncoder.{h,m}",
 					"MQTTClient/MQTTClient/MQTTSSLSecurityPolicyTransport.{h,m}",
+					"MQTTClient/MQTTClient/MQTTProperties.{h,m}",
 					"MQTTClient/MQTTClient/MQTTSession.{h,m}",
 					"MQTTClient/MQTTClient/MQTTSessionLegacy.{h,m}",
 					"MQTTClient/MQTTClient/MQTTSessionSynchron.{h,m}",
-					"MQTTClient/MQTTClient/MQTTTransport.{h,m}"
+					"MQTTClient/MQTTClient/MQTTTransport.{h,m}",
+					"MQTTClient/MQTTClient/GCDTimer.{h,m}"
 	end
 
 	mqttc.subspec 'MinL' do |minl|
-		minl.dependency 'CocoaLumberjack', '~> 2.3.0'
+		minl.dependency 'CocoaLumberjack'
+
 		minl.source_files =	"MQTTClient/MQTTClient/MQTTCFSocketDecoder.{h,m}",
 					"MQTTClient/MQTTClient/MQTTCFSocketEncoder.{h,m}",
 					"MQTTClient/MQTTClient/MQTTCFSocketTransport.{h,m}",
 					"MQTTClient/MQTTClient/MQTTCoreDataPersistence.{h,m}",
 					"MQTTClient/MQTTClient/MQTTDecoder.{h,m}",
 					"MQTTClient/MQTTClient/MQTTInMemoryPersistence.{h,m}",
-					"MQTTClient/MQTTClient/MQTTLog.h",
+					"MQTTClient/MQTTClient/MQTTLog.{h,m}",
+					"MQTTClient/MQTTClient/MQTTStrict.{h,m}",
 					"MQTTClient/MQTTClient/MQTTClient.h",
 					"MQTTClient/MQTTClient/MQTTMessage.{h,m}",
 					"MQTTClient/MQTTClient/MQTTPersistence.h",
@@ -60,22 +65,28 @@ Pod::Spec.new do |mqttc|
 					"MQTTClient/MQTTClient/MQTTSSLSecurityPolicyDecoder.{h,m}",
 					"MQTTClient/MQTTClient/MQTTSSLSecurityPolicyEncoder.{h,m}",
 					"MQTTClient/MQTTClient/MQTTSSLSecurityPolicyTransport.{h,m}",
+					"MQTTClient/MQTTClient/MQTTProperties.{h,m}",
 					"MQTTClient/MQTTClient/MQTTSession.{h,m}",
 					"MQTTClient/MQTTClient/MQTTSessionLegacy.{h,m}",
 					"MQTTClient/MQTTClient/MQTTSessionSynchron.{h,m}",
-					"MQTTClient/MQTTClient/MQTTTransport.{h,m}"
-		minl.compiler_flags = '-DLUMBERJACK=1'
+					"MQTTClient/MQTTClient/MQTTTransport.{h,m}",
+					"MQTTClient/MQTTClient/GCDTimer.{h,m}"
+		minl.xcconfig = { 'GCC_PREPROCESSOR_DEFINITIONS' => 'LUMBERJACK=1' }
 	end
 
 	mqttc.subspec 'Manager' do |manager|
-		manager.source_files =	"MQTTClient/MQTTClient/MQTTSessionManager.{h,m}"
+		manager.source_files =	"MQTTClient/MQTTClient/MQTTSessionManager.{h,m}", 
+					"MQTTClient/MQTTClient/ReconnectTimer.{h,m}",
+					"MQTTClient/MQTTClient/ForegroundReconnection.{h,m}"
 		manager.dependency 'MQTTClient/Min'
 	end
 
 	mqttc.subspec 'ManagerL' do |managerl|
-		managerl.source_files =	"MQTTClient/MQTTClient/MQTTSessionManager.{h,m}"
+		managerl.source_files =	"MQTTClient/MQTTClient/MQTTSessionManager.{h,m}", 
+					"MQTTClient/MQTTClient/ReconnectTimer.{h,m}", 
+					"MQTTClient/MQTTClient/ForegroundReconnection.{h,m}"
 		managerl.dependency 'MQTTClient/MinL'
-		managerl.compiler_flags = '-DLUMBERJACK=1'
+		managerl.xcconfig = { 'GCC_PREPROCESSOR_DEFINITIONS' => 'LUMBERJACK=1' }
 	end
 
 	mqttc.subspec 'Websocket' do |ws|
@@ -92,6 +103,6 @@ Pod::Spec.new do |mqttc|
 		wsl.dependency 'MQTTClient/MinL'
 		wsl.requires_arc = true
 		wsl.libraries = "icucore"
-		wsl.compiler_flags = '-DLUMBERJACK=1'
+		wsl.xcconfig = { 'GCC_PREPROCESSOR_DEFINITIONS' => 'LUMBERJACK=1' }
 	end
 end

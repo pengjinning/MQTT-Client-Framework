@@ -3,20 +3,19 @@
 //  MQTTClient
 //
 //  Created by Christoph Krey on 09.12.15.
-//  Copyright © 2015-2016 Christoph Krey. All rights reserved.
+//  Copyright © 2015-2017 Christoph Krey. All rights reserved.
 //
 
 #import <Foundation/Foundation.h>
 #import <XCTest/XCTest.h>
 
-#import "MQTTClient.h"
 #import "MQTTSessionManager.h"
 #import "MQTTSSLSecurityPolicy.h"
 
 #define TOPIC @"MQTTClient"
 #define MULTI 15 // some test servers are limited in concurrent sessions
 #define BULK 100 // some test servers are limited in queue size
-#define ALOT 1000 // some test servers are limited in queue size
+#define ALOT 256 // some test servers are limited in queue size
 
 @interface MQTTTestHelpers : XCTestCase <MQTTSessionDelegate, MQTTSessionManagerDelegate>
 - (void)timedout:(id)object;
@@ -26,12 +25,17 @@
 + (id<MQTTPersistence>)persistence:(NSDictionary *)parameters;
 + (NSArray *)clientCerts:(NSDictionary *)parameters;
 + (MQTTSSLSecurityPolicy *)securityPolicy:(NSDictionary *)parameters;
++ (NSDictionary *)broker;
++ (NSDictionary *)allBrokers;
 
-@property (strong, nonatomic) NSMutableDictionary *brokers;
 @property (strong, nonatomic) MQTTSession *session;
 
 @property (nonatomic) int event;
 @property (strong, nonatomic) NSError *error;
+
+@property (strong, nonatomic) NSError *connectionError;
+@property (nonatomic) BOOL connected;
+@property (nonatomic) BOOL sessionPresent;
 
 @property (nonatomic) UInt16 subMid;
 @property (nonatomic) UInt16 unsubMid;
