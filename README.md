@@ -73,6 +73,18 @@ Publish a message to a topic:
 }];
 ```
 
+If you already have a self signed URL from broker like AWS IoT endpoint, use the `url` property of `MQTTWebsocketTransport`:
+```objective-c
+MQTTWebsocketTransport *transport = [[MQTTWebsocketTransport alloc] init];
+transport.url = @"wss://aws.iot-amazonaws.com/mqtt?expiry='2018-05-01T23:12:32.950Z'"
+
+MQTTSession *session = [[MQTTSession alloc] init];
+session.transport = transport;
+[session connectWithConnectHandler:^(NSError *error) {
+    // Do some work
+}];
+```
+
 ## Installation
 
 ### CocoaPods 
@@ -128,6 +140,10 @@ github "novastone-media/MQTT-Client-Framework"
 2. Build it and you should find MQTTClient.framework under "Products" group.
 3. Right click on it and select "Show in Finder" option.
 4. Just drag and drop MQTTClient.framework to your project
+
+## Security Disclosure
+
+If you believe you have identified a security vulnerability with MQTT-Client-Framework, please report it to ios@novastonemedia.com and do not post it to a public issue tracker.
 
 ## Thanks
 
